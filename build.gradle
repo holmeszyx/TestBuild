@@ -1,0 +1,75 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.12.+'
+    }
+}
+
+
+apply plugin: 'android'
+
+dependencies {
+    compile "com.android.support:support-v4:20.0.+"
+}
+
+android {
+    compileSdkVersion 16
+    buildToolsVersion "20.0.0"
+
+    defaultConfig{
+        minSdkVersion 5
+        targetSdkVersion 16
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+        }
+
+        // Move the tests to tests/java, tests/res, etc...
+        instrumentTest.setRoot('tests')
+
+        // Move the build types to build-types/<type>
+        // For instance, build-types/debug/java, build-types/debug/AndroidManifest.xml, ...
+        // This moves them out of them default location under src/<type>/... which would
+        // conflict with src/ being used by the main source set.
+        // Adding new build types or product flavors should be accompanied
+        // by a similar customization.
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+
+    packagingOptions {
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/LICENSE.txt'
+    }
+}
+
+
+task copyNativeLibs(type: Copy) {
+    from(new File('libs')) { include '**/*.so' }
+    into new File(buildDir, 'native-libs')
+}
+
+task cleanCopyNativeLibs << {
+    println('clean NativeLibs')
+}
+
+tasks.withType(Compile) { compileTask -> compileTask.dependsOn copyNativeLibs }
+
+clean.dependsOn 'cleanCopyNativeLibs'
+
+tasks.withType(com.android.build.gradle.tasks.PackageApplication) { pkgTask ->
+    //pkgTask.jniDir new File(buildDir, 'native-libs')
+    folderSet = new HashSet<File>();
+    folderSet.add(new File(buildDir, 'native-libs'))
+    pkgTask.jniFolders = folderSet
+}
